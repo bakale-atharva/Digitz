@@ -1,23 +1,29 @@
 package digitz;
 
-import java.io.*;
+import java.awt.Image;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
+
 import javax.imageio.ImageIO;
-import java.awt.*;
 
 /**
- * This class will return an image
- * from a binary data
+ * Returns the application icon when present, otherwise falls back to an empty image.
  */
-
 public class BufferedImageCustom {
     public Image imageReturn() throws IOException {
-        Image image;
+        InputStream stream = getClass().getResourceAsStream("/resources/icon/icon.png");
+        if (stream == null) {
+            return new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+        }
 
-        InputStream bis = getClass().getResourceAsStream("/resources/icon/icon.png");
-        BufferedImage bImage2 = ImageIO.read(bis);
-        image = bImage2;
+        try (InputStream input = stream) {
+            BufferedImage image = ImageIO.read(input);
+            if (image != null) {
+                return image;
+            }
+        }
 
-        return image;
+        return new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
     }
 }

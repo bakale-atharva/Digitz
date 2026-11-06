@@ -8,8 +8,15 @@
  */
 package digitz;
 
+import java.awt.GraphicsEnvironment;
+
 public class Digitz {
     public static void main(String[] args) {
+        if (GraphicsEnvironment.isHeadless()) {
+            System.out.println("Digitz requires a graphical desktop environment to run.");
+            return;
+        }
+
         try {
             UI uiCal = new UI();
             uiCal.init();
