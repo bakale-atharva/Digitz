@@ -32,6 +32,15 @@ import javax.swing.WindowConstants;
 public final class CalculatorWindow {
     private static final String TITLE = "Digitz";
 
+    // Best practice: logical font names (SANS_SERIF) exist on every platform; "Arial" may not.
+    private static final Font DISPLAY_FONT = new Font(Font.SANS_SERIF, Font.BOLD, 34);
+    private static final Font HISTORY_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 14);
+    private static final Font KEY_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 18);
+    private static final Font SCIENTIFIC_KEY_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 15);
+
+    private static final int GAP = 6;
+    private static final Dimension KEY_SIZE = new Dimension(72, 52);
+
     public CalculatorWindow() {}
 
     public void show() {}
