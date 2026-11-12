@@ -1,27 +1,20 @@
-/**
- * @name Digitz
- * @package atharvabakale.calculator
- * @file Main.java
- * @author Atharva Bakale
- * @email bakaleatharva13@gmail.com
- * @link https://github.com/bakale-atharva
- */
 package digitz;
 
 import java.awt.GraphicsEnvironment;
 
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
+
+/**
+ * Starts the Digitz Calculator.
+ *
+ * @author Atharva Bakale
+ * @see <a href="https://github.com/bakale-atharva">github.com/bakale-atharva</a>
+ */
+
 public class Digitz {
     public static void main(String[] args) {
-        if (GraphicsEnvironment.isHeadless()) {
-            System.out.println("Digitz requires a graphical desktop environment to run.");
-            return;
-        }
 
-        try {
-            UI uiCal = new UI();
-            uiCal.init();
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
     }
 }
