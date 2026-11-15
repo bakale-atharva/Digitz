@@ -77,45 +77,19 @@ import javax.swing.WindowConstants;
  * @see Digitz
  */
 public final class CalculatorWindow {
-    /** The text in the window's title bar */
     private static final String TITLE = "Digitz";
 
-    // Best practice: logical font names (SANS_SERIF) exist on every platform; "Arial" may not.
-
-    /** Font of the main display: large and bold so the current number stands out. */
     private static final Font DISPLAY_FONT = new Font(Font.SANS_SERIF, Font.BOLD, 34);
-
-    /** Font of the grey history line above the display. */
     private static final Font HISTORY_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 14);
-
-    /** Font of the digit, operator and control keys. */
     private static final Font KEY_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 18);
-
-    /** Font of the scientific keys, slightly smaller because their initials are longer. */
     private static final Font SCIENTIFIC_KEY_FONT = new Font(Font.SANS_SERIF, Font.PLAIN, 15);
 
-    /** Space in pixels between neighboring keys. Sections are separated by twice this. */
     private static final int GAP = 6;
-
-    /** Preferred size of every key. {@link #show()} sizes the window around these. */
     private static final Dimension KEY_SIZE = new Dimension(72, 52);
 
-    /** Does all the calculating. The window only forwards key presses to it. */
 //    private final CalculatorEngine = new CalculatorEngine();
-
-    // Best practices: Composition. The class *has* a JFrame instead of *being* one (extends JFrame),
-    // so it exposes only the method it really needs
-
-    /** The top-level window. Kept private so callers can only use {@link #show()}. */
     private final JFrame frame = new JFrame(TITLE);
-
-    /**
-     * The grey line above the display that describes the last step. It holds a single
-     * space when empty, so it's height does not change. See {@link #refresh()}.
-     */
     private final JLabel historyLabel = new JLabel(" ", SwingConstants.RIGHT);
-
-    /** The main display showing the number being typed or the latest result. */
     private final JLabel displayLabel = new JLabel("0", SwingConstants.RIGHT);
 
     /**
@@ -125,8 +99,6 @@ public final class CalculatorWindow {
      * <p>Must be called on the Swing Event Dispatch Thread.
      */
     public CalculatorWindow() {
-        // Best practices: DISPOSE_ON_CLOSE frees the window and lets the JVM exit on its own
-        // once no windows are left, instead of killing the whole program with EXIT_ON_CLOSE.
         frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         frame.setResizable(false);
 
@@ -143,7 +115,6 @@ public final class CalculatorWindow {
 
     public void show() {}
 
-    /** Copies the engine's display text and history text onto the labels. */
     private void refresh() {
         displayLabel.setText(engine.displayText());
         String history = engine.historyText();

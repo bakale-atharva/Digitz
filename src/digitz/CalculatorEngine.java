@@ -70,16 +70,139 @@ public final class CalculatorEngine {
      * a literal {@code "Error"} string, or use {@link #hasError()}.
      */
     public static final String ERROR_TEXT = "Error";
+    private static final int MAX_INPUT_LENGTH = 16;
+    private static final MathContext DISPLAY_PRECISION = new MathContext(12);
+    private static final double PLAIN_NOTATION_MAX = 1e15;
+    private static final double PLAIN_NOTATION_MIN = 1e-9;
 
-    // Best practice: named constants instead of "magic numbers" scattered through the code.
+    private final StringBuilder input = new StringBuilder("0");
+    private String history = "";
+
+    private double accumulator;
+    private BinaryOp pendingOp;           // null when no operation is waiting for its second number
+    private boolean startNewEntry = true; // the next digit replaces the display instead of appending
+    private boolean awaitingOperand;      // an operator was pressed and no new number has been typed yet
+    private boolean error;
 
     /**
-     * The most characters a typed number can have, including the decimal point and
-     * minus sign. Further digits are ignored, so the display never overflows.
+     * Creates a calculator in its starting state: the display shows {@code 0}, the
+     * history line is empty, and no operation is ending.
      */
-    private static final int MAX_INPUT_LENGTH = 16;
-
     public CalculatorEngine() {
         // All fields start with the values set in their declarations.
     }
+
+    /**
+     * Handles a digit key.
+     *
+     * <p>Behavior depends on the current state:
+     * <ul>
+     *     <li>After a result, an operator or an error, the digit starts a new number.</li>
+     *     <li>A leading {@code 0} is replaced, so typing {@code 0} then {@code 7} shows {@code 7}.</li>
+     *     <li>Once the number is {@value #MAX_INPUT_LENGTH} characters long, more digits are ignored.</li>
+     * </ul>
+     *
+     * @param digit the digit pressed, from {@code 0} to {@code 9}
+     * @throws IllegalArgumentException if {@code digit} is not between {@code 0} and {@code 9};
+     *         this means a bug in the calling code, never a user mistake
+     */
+    public void digit(int digit) {
+        if (digit < 0 || digit > 9) {
+            // Best practice: reject bad arguments loudly instead of silently doing something odd.
+            throw new IllegalArgumentException("Not a single digit: " + digit);
+        }
+        beginEntryIfNeeded();
+        if (input.length() >= MAX_INPUT_LENGTH) {
+            return;
+        }
+        if (input.toString().equals("0")) {
+            input.setLength(0);
+        }
+        input.append(digit);
+    }
+
+    /**
+     * Handles the decimal point key.
+     *
+     * <p>A number can contain only one point, so further processes are ignored. Pressing it
+     * to start a new number shows {@code 0.}, ready for the digits after the point.
+     */
+    public void decimalPoint() {
+        beginEntryIfNeeded();
+        if (input.indexOf(".") < 0 && input.length() < MAX_INPUT_LENGTH) {
+            input.append(".");
+        }
+    }
+
+    /**
+     * Handles the backspace key ({@code ⌫}): removes the last typed character.
+     *
+     * <ul>
+     *   <li>While typing, removes one character. Removing the last one leaves {@code 0}.</li>
+     *   <li>When a result is shown, does nothing, because a result cannot be edited.</li>
+     *   <li>When an error is shown, clears everything, exactly like {@link #clear()}.</li>
+     * </ul>
+     */
+    public void backspace() {
+        if (error) {
+            clear();
+            return;
+        }
+        if (startNewEntry) {
+            return;
+        }
+        input.deleteCharAt(input.length() - 1);
+        if (input.isEmpty() || input.toString().equals("-")) {
+            setInput("0");
+        }
+    }
+
+    /**
+     * 
+     */
+
+    /**
+     * Handles the {@code C}: resets the calculator to its starting state.
+     *
+     * <p>The display returns to {@code 0}, the history line empties, any pending operation
+     * is forgotten and any error is cleared.
+     */
+    public void clear() {
+        setInput("0");
+        history = "";
+        accumulator = 0.0;
+        pendingOp = null;
+        startNewEntry = true;
+        awaitingOperand = false;
+        error = false;
+    }
+
+    /**
+     * Prepares the display for typing. Clears and error if one is shown, and empties the
+     * display if a result or operator was the last thing pressed.
+     */
+    private void beginEntryIfNeeded() {
+        if (error) {
+            clear();
+        }
+        if (startNewEntry) {
+            setInput("0");
+            startNewEntry = false;
+        }
+        awaitingOperand = false;
+    }
+
+    /**
+     * Replaces everything on the display with the given text.
+     *
+     * @param text the new display text
+     */
+    private void setInput(String text) {
+        input.setLength(0);
+        input.append(text);
+    }
+
+    /**
+     * Formats a number
+     */
 }
