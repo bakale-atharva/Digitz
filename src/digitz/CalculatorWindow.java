@@ -87,7 +87,7 @@ public final class CalculatorWindow {
     private static final int GAP = 6;
     private static final Dimension KEY_SIZE = new Dimension(72, 52);
 
-//    private final CalculatorEngine = new CalculatorEngine();
+    private final CalculatorEngine engine = new CalculatorEngine();
     private final JFrame frame = new JFrame(TITLE);
     private final JLabel historyLabel = new JLabel(" ", SwingConstants.RIGHT);
     private final JLabel displayLabel = new JLabel("0", SwingConstants.RIGHT);

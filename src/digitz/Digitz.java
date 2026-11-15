@@ -33,7 +33,6 @@ import javax.swing.UnsupportedLookAndFeelException;
  */
 
 public final class Digitz {
-    /** Not used. This class only holds {@link #main(String[])}, so it is never instantiated. */
     private Digitz() {}
 
     /**
@@ -50,28 +49,17 @@ public final class Digitz {
             System.exit(1);
         }
 
-        // Best Practices: Swing is not thread-safe. Every Swing component must be created
-        // and changed on the Event Dispatch Thread (EDT), and invokeLater puts the work there.
+        // Swing is not thread-safe: all UI work must happen on the Event Dispatch Thread.
         SwingUtilities.invokeLater(() -> {
             useSystemLookAndFeel();
             new CalculatorWindow().show();
         });
     }
 
-    /**
-     * Switches Swing to the operating system's look-and-feel, so the window and buttons
-     * look native: Aqua on macOS, the Windows theme on Windows, and GTK on Linux where available.
-     *
-     * <p>If the switch fails, a message is printed to {@link System#err} and Swing's
-     * built-in cross-platform look is used instead. The app still works normally.
-     * Must be called before any windows are created.
-     */
     private static void useSystemLookAndFeel() {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (ReflectiveOperationException | UnsupportedLookAndFeelException e) {
-            // Best practices: catch only the exceptions that can actually happen here,
-            // and fall back gracefully instead of crashing.
             System.err.println("Using the default look and feel: " + e.getMessage());
         }
     }

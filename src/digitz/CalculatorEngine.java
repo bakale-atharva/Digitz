@@ -158,8 +158,93 @@ public final class CalculatorEngine {
     }
 
     /**
-     * 
+     * Handles an operator key that needs two numbers {@code + − × ÷ ^}.
+     *
+     * <ul>
+     *  <li>If another operation is already waiting and a new member has been typed,
+     *      that operation is calculated first and its result is shown. This is what makes
+     *      {@code 2 + 3 x} show {@code 5}.</li>
+     *  <li>If the user presses two operators in a row, the second replaces the first.</li>
+     *  <li>The history line is updated to show the running total and the new operator,
+     *      for example {@code "5 x"}.</li>
+     *  <li>Ignored while an error is shwon.</li>
+     * </ul>
+     *
+     * @param op the operator pressed; must not be {@code null}
      */
+    public void binary(BinaryOp op) {
+        if (error) {
+            return;
+        }
+        double value = currentValue();
+
+        if (pendingOp == null) {
+            accumulator = value;
+        } else if (!awaitingOperand) {
+            accumulator = pendingOp.apply(accumulator, value);
+            if (!showResult(accumulator)) {
+                return;
+            }
+        }
+    }
+
+    /**
+     * Handles a key that works on one number, such as {@code √}, {@code sin} or {@code ±}.
+     *
+     * <p>The operation is applied to the number on the display and the result is shown
+     * immediately. If an operation is pending, the result becomes its second number, so
+     * {@code 9 + 16 √ =} gives {@code 13}.
+     *
+     * <p>{@link UnaryOp#NEGATE} is special while a number is being typed: it only toggles
+     * the minus sign, so the user can keep typing digits afterwards.
+     *
+     * <p>Ignored while an error is shown. An invalid result, such as {@code √(-4)},
+     * puts the engine into the error state.
+     *
+     * @param op the operation pressed; must not be {@code null}
+     */
+    public void unary(UnaryOp op) {
+        if (error) {
+            return;
+        }
+        if (op == UnaryOp.NEGATE && !startNewEntry) {
+            toggleSign();
+            return;
+        }
+
+        double value = currentValue();
+        String expression = op.describe(format(value));
+        history = pendingOp == null ? expression : format(accumulator) + " " + pendingOp.symbol() + " " + expression;
+
+        showResult(op.apply(value));
+        awaitingOperand = false;
+        startNewEntry = false;
+    }
+
+    /**
+     * Handles the {@code =} key: calculates the pending operation and shows the result.
+     *
+     * <p>The history line shows the full calculation, for example {@code "12 + 3 ="}.
+     * The result can then be used as the first number of a new calculation by pressing
+     * an operator, or replaced by typing a new number.
+     *
+     * <p>Does nothing when no operation is pending or an error is shown. If the user
+     * presses {@code =} straight after an operator, the number on the display is used
+     * for both sides, so {@code 4 + =} gives {@code 8}.
+     */
+    public void equalsKey() {
+        if (error || pendingOp == null) {
+            return;
+        }
+        double value = currentValue();
+        history = format(accumulator) + " " + pendingOp.symbol() + " " + format(value) + " =";
+
+        double result = pendingOp.apply(accumulator, value);
+        pendingOp = null;
+        awaitingOperand = false;
+        startNewEntry = true;
+        showResult(result);
+    }
 
     /**
      * Handles the {@code C}: resets the calculator to its starting state.
@@ -178,9 +263,43 @@ public final class CalculatorEngine {
     }
 
     /**
-     * Prepares the display for typing. Clears and error if one is shown, and empties the
-     * display if a result or operator was the last thing pressed.
+     * Returns the text for the main display.
+     *
+     * <p>While the user is typing, this is exactly what they typed, including a trailing
+     * point such as {@code "3."}. After a calculation it is the formatted result, such as
+     * {@code "0.3} or {@code "1E+20"}.
+     *
+     * @return the display text, or {@link #ERROR_TEXT} in the error state; never {@code null}
      */
+    public String displayText() {
+        return error ? ERROR_TEXT : input.toString();
+    }
+
+    /**
+     * Returns the small line shown above the display, describing the latest step.
+     *
+     * <p>Examples: {@code "12 +"} after pressing an operator, {@code "12 + 3 ="} after
+     * {@code =}, or {@code "√(81)"} after a one-number operation. After an error it still
+     * shows the step that failed, so the user can see what went wrong.
+     *
+     * @return the history text, or an empty string when there is nothing to show; never {@code null}
+     */
+    public String historyText() {
+        return history;
+    }
+
+    /**
+     * Tells whether the calculator is showing an error.
+     *
+     * <p>While this is {@code true}, operator keys and {@code =} are ignored. Typing a digit
+     * or decimal point, or pressing {@code ⌫} or {@code C}, clears the error.
+     *
+     * @return {@code true} if {@link #displayText()} is currently {@link #ERROR_TEXT}
+     */
+    public boolean hasError() {
+        return error;
+    }
+
     private void beginEntryIfNeeded() {
         if (error) {
             clear();
@@ -192,17 +311,43 @@ public final class CalculatorEngine {
         awaitingOperand = false;
     }
 
-    /**
-     * Replaces everything on the display with the given text.
-     *
-     * @param text the new display text
-     */
+    private void toggleSign() {
+        if (input.charAt(0) == '-') {
+            input.deleteCharAt(0);
+        } else if (!input.toString().equals("0")) {
+            input.insert(0, "-");
+        }
+    }
+
+    private double currentValue() {
+        return Double.parseDouble(input.toString());
+    }
+
+    // Returns false if the result was NaN or infinite and the engine is now in the error state.
+    private boolean showResult(double result) {
+        if (!Double.isFinite(result)) {
+            error = true;
+            pendingOp = null;
+            awaitingOperand = false;
+            startNewEntry = true;
+            return false;
+        }
+        setInput(format(result));
+        return true;
+    }
+
     private void setInput(String text) {
         input.setLength(0);
         input.append(text);
     }
 
-    /**
-     * Formats a number
-     */
+    // Rounding to 12 significant digits hides double noise: 0.30000000000000004 becomes "0.3".
+    static String format(double value) {
+        BigDecimal rounded = BigDecimal.valueOf(value).round(DISPLAY_PRECISION).stripTrailingZeros();
+        double magnitude = Math.abs(rounded.doubleValue());
+
+        boolean readableAsPlain = magnitude == 0.0
+                || (magnitude >= PLAIN_NOTATION_MIN && magnitude < PLAIN_NOTATION_MAX);
+        return readableAsPlain ? rounded.toPlainString() : rounded.toString();
+    }
 }
