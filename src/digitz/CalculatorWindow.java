@@ -113,12 +113,134 @@ public final class CalculatorWindow {
         refresh();
     }
 
-    public void show() {}
+    /**
+     * Sizes the window to fit its contents, centres it on the screen and makes it visible.
+     *
+     * <p>Must be called on the Swing Event Dispatch Thread. Calling it again on a visible
+     * window re-centres it.
+     */
+    public void show() {
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
+    }
+
+    private JPanel createDisplayPanel() {
+        historyLabel.setFont(HISTORY_FONT);
+        historyLabel.setForeground(Color.GRAY);
+        displayLabel.setFont(DISPLAY_FONT);
+
+        JPanel panel = new JPanel(new BorderLayout(0, 2));
+        panel.add(historyLabel, BorderLayout.NORTH);
+        panel.add(displayLabel, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel createKeypad() {
+        JPanel scientific = new JPanel(new GridLayout(2, 5, GAP, GAP));
+        for (UnaryOp op : new UnaryOp[] {
+                UnaryOp.SIN, UnaryOp.COS, UnaryOp.TAN, UnaryOp.LOG10, UnaryOp.LN,
+                UnaryOp.SQUARE, UnaryOp.SQUARE_ROOT, UnaryOp.RECIPROCAL, UnaryOp.ABSOLUTE}) {
+            scientific.add(createKey(op.label(), SCIENTIFIC_KEY_FONT, () -> engine.unary(op));
+        }
+        scientific.add(createKey("x", SCIENTIFIC_KEY_FONT, () -> engine.binary(BinaryOp.POWER)));
+
+        JPanel basic = new JPanel(new GridLayout(5, 4, GAP, GAP));
+        basic.add(createKey("C", KEY_FONT, engine::clear));
+        basic.add(createKey("⌫", KEY_FONT, engine::backspace));
+        basic.add(createKey(UnaryOp.NEGATE.label(), KEY_FONT, () -> engine.unary(UnaryOp.NEGATE)));
+        basic.add(createOperatorKey(BinaryOp.DIVIDE));
+
+        addDigitRow(basic, 7, 8, 9);
+        basic.add(createOperatorKey(BinaryOp.MULTIPLY));
+        addDigitRow(basic, 4, 5, 6);
+        basic.add(createOperatorKey(BinaryOp.SUBTRACT));
+        addDigitRow(basic, 1, 2, 3);
+        basic.add(createOperatorKey(BinaryOp.ADD));
+
+        basic.add(createKey(UnaryOp.PERCENT.label(), KEY_FONT, () -> engine.unary(UnaryOp.PERCENT)));
+        basic.add(createKey("0", KEY_FONT, () -> engine.digit(0)));
+        basic.add(createKey(".", KEY_FONT, engine::decimalPoint));
+        basic.add(createKey("=", KEY_FONT, engine::equalsKey));
+
+        JPanel keypad = new JPanel(new BorderLayout(0, GAP * 2));
+        keypad.add(scientific, BorderLayout.NORTH);
+        keypad.add(basic, BorderLayout.CENTER);
+        return keypad;
+    }
+
+    private void addDigitRow(JPanel panel, int... digits) {
+        for (int digit : digits) {
+            panel.add(createKey(String.valueOf(digit), KEY_FONT, () -> engine.digit(digit)));
+        }
+    }
+
+    private JButton createOperatorKey(BinaryOp op) {
+        return createKey(op.symbol(), KEY_FONT, () -> engine.binary(op));
+    }
+
+    private JButton createKey(String text, Font font, Runnable action) {
+        JButton button = new JButton(text);
+        button.setFont(font);
+        button.setPreferredSize(KEY_SIZE);
+        // Unfocusable, so typed keys always reach the window shortcuts after a click.
+        button.setFocusable(false);
+        button.addActionListener(_ -> perform(action));
+        return button;
+    }
+
+    // Key bindings work whichever component has focus, unline a KeyListener.
+    private void installKeyboardShortcuts(JRootPane root) {
+        for (int digit = 0; digit <= 9; digit++) {
+            int value = digit;
+            bindTyped(root, Character.forDigit(digit, 10), () -> engine.digit(value));
+        }
+        bindTyped(root, '.', engine::decimalPoint);
+        bindTyped(root, ',', engine::decimalPoint);
+        bindTyped(root, '+', () -> engine.binary(BinaryOp.ADD));
+    }
+
+    private void bindTyped(JRootPane root, char key, Runnable action) {
+        bind(root, KeyStroke.getKeyStroke(key), "typed" + key, action);
+    }
+
+    private void bind(JRootPane root, KeyStroke stroke, String name, Runnable action) {
+        root.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW).put(stroke, name);
+        root.getActionMap().put(name, new EngineAction(() -> perform(action)));
+    }
+
+    private void perform(Runnable action) {
+        action.run();
+        refresh();
+    }
 
     private void refresh() {
         displayLabel.setText(engine.displayText());
         String history = engine.historyText();
         // A single space keeps the label's height, so the layout does not jump when it is empty.
         historyLabel.setText(history.isEmpty() ? " " : history);
+    }
+
+    private void applyIcon(Image image) {
+        frame.setIconImage(image);
+        // macOS takes the Dock icon from the Taskbar API, not from the window.
+        if (Taskbar.isTaskbarSupported()
+                && Taskbar.getTaskbar().isSupported(Taskbar.Feature.ICON_IMAGE)) {
+            Taskbar.getTaskbar().setIconImage(image);
+        }
+    }
+
+    private static final class EngineAction extends AbstractAction {
+        private static final long serialVersionUID = 1L;
+        private final transient Runnable task;
+
+        EngineAction(Runnable task) {
+            this.task = task;
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent event) {
+            task.run();
+        }
     }
 }
