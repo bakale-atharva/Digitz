@@ -141,7 +141,7 @@ public final class CalculatorWindow {
         for (UnaryOp op : new UnaryOp[] {
                 UnaryOp.SIN, UnaryOp.COS, UnaryOp.TAN, UnaryOp.LOG10, UnaryOp.LN,
                 UnaryOp.SQUARE, UnaryOp.SQUARE_ROOT, UnaryOp.RECIPROCAL, UnaryOp.ABSOLUTE}) {
-            scientific.add(createKey(op.label(), SCIENTIFIC_KEY_FONT, () -> engine.unary(op));
+            scientific.add(createKey(op.label(), SCIENTIFIC_KEY_FONT, () -> engine.unary(op)));
         }
         scientific.add(createKey("x", SCIENTIFIC_KEY_FONT, () -> engine.binary(BinaryOp.POWER)));
 
