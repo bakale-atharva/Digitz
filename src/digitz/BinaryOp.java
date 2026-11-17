@@ -79,7 +79,7 @@ public enum BinaryOp {
     /**
      * Runs this operation on two numbers.
      *
-     * <p>The order of the arguments matters for {@link #SUBTRACT, {@link #DIVIDE}}
+     * <p>The order of the arguments matters for {@link #SUBTRACT}, {@link #DIVIDE}
      * and {@link #POWER}: {@code SUBTRACT.apply(9, 4)} is {@code 5}, not {@code -5}.
      *
      * @param left  the first number, the one typed before the operator key
