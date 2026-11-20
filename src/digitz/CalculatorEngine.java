@@ -7,20 +7,20 @@ import java.math.MathContext;
  * The calculator's brain. It remembers the number being typed, the running total and
  * the pending operation, and turns key presses into results.
  *
- * <h2>No User Interface Code</h2>
+ * <h2>No user interface code</h2>
  * <p>This class does not use Swing at all. The window ({@link CalculatorWindow})
  * forwards each key press to one method here, then reads {@link #displayText()} and
  * {@link #historyText()} to redraw itself. Because of that split, the engine can be
  * driven and tested from plain code without opening a window.
  *
- * <h2>Which Method Each Key Calls</h2>
+ * <h2>Which method each key calls</h2>
  * <table class="striped">
  *   <caption>Keys and their engine methods</caption>
  *   <thead><tr><th scope="col">Key</th><th scope="col">Method</th></tr></thead>
  *   <tbody>
- *     <tr><td>{@code 0}-{@code 9}</td><td>{@link #digit(int)}</td></tr>
+ *     <tr><td>{@code 0}–{@code 9}</td><td>{@link #digit(int)}</td></tr>
  *     <tr><td>{@code .}</td><td>{@link #decimalPoint()}</td></tr>
- *     <tr><td>{@code + - * ÷ ^}</td><td>{@link #binary(BinaryOp)}</td></tr>
+ *     <tr><td>{@code + − × ÷ ^}</td><td>{@link #binary(BinaryOp)}</td></tr>
  *     <tr><td>{@code √ x² sin} and other one-number keys</td><td>{@link #unary(UnaryOp)}</td></tr>
  *     <tr><td>{@code =}</td><td>{@link #equalsKey()}</td></tr>
  *     <tr><td>{@code ⌫}</td><td>{@link #backspace()}</td></tr>
@@ -28,11 +28,11 @@ import java.math.MathContext;
  *   </tbody>
  * </table>
  *
- * <h2>How Calculations Chain</h2>
+ * <h2>How calculations chain</h2>
  * <p>Operations are evaluated immediately from left to right, like a pocket calculator.
- * There is no operator precedence: {@code 2 + 3 x 4 =} gives {@code 20}
- * ({@code (2 + 3) x 4}), not {@code 14}. Pressing a second operator before typing a
- * new number just replaces the first one, so {@code 2 + x 3 =} gives {@code 6}.
+ * There is no operator precedence: {@code 2 + 3 × 4 =} gives {@code 20}
+ * ({@code (2 + 3) × 4}), not {@code 14}. Pressing a second operator before typing a
+ * new number just replaces the first one, so {@code 2 + × 3 =} gives {@code 6}.
  *
  * <h2>Errors</h2>
  * <p>When a result is not a finite number, such as {@code 1 ÷ 0} or {@code √(-4)}, the
@@ -40,6 +40,11 @@ import java.math.MathContext;
  * operator keys are ignored, and typing a digit, the decimal point, {@code ⌫} or
  * {@code C} starts afresh. Methods in this class never throw for user input; only
  * programming mistakes (such as {@code digit(12)}) throw exceptions.
+ *
+ * <h2>Display formatting</h2>
+ * <p>Results are rounded to 12 significant digits, so {@code 0.1 + 0.2} shows
+ * {@code 0.3} rather than {@code 0.30000000000000004}. Very large or very small
+ * results switch to E notation, such as {@code 1E+20}.
  *
  * <h2>Example</h2>
  * {@snippet :
@@ -50,8 +55,8 @@ import java.math.MathContext;
  * engine.digit(3);
  * engine.equalsKey();
  *
- * engine.displayText();  // "15"
- * engine.historyText();  // "12 + 3 ="
+ * engine.displayText();   // "15"
+ * engine.historyText();   // "12 + 3 ="
  * }
  *
  * <h2>Threading</h2>
@@ -62,14 +67,15 @@ import java.math.MathContext;
  * @see BinaryOp
  * @see UnaryOp
  */
-
 public final class CalculatorEngine {
+
     /**
      * The text shown on the display when a calculation has no valid result,
-     * for example when dividing by zero. Compare against this constant rather than
+     * for example after dividing by zero. Compare against this constant rather than
      * a literal {@code "Error"} string, or use {@link #hasError()}.
      */
     public static final String ERROR_TEXT = "Error";
+
     private static final int MAX_INPUT_LENGTH = 16;
     private static final MathContext DISPLAY_PRECISION = new MathContext(12);
     private static final double PLAIN_NOTATION_MAX = 1e15;
@@ -86,20 +92,19 @@ public final class CalculatorEngine {
 
     /**
      * Creates a calculator in its starting state: the display shows {@code 0}, the
-     * history line is empty, and no operation is ending.
+     * history line is empty, and no operation is pending.
      */
     public CalculatorEngine() {
-        // All fields start with the values set in their declarations.
     }
 
     /**
      * Handles a digit key.
      *
-     * <p>Behavior depends on the current state:
+     * <p>Behaviour depends on the current state:
      * <ul>
-     *     <li>After a result, an operator or an error, the digit starts a new number.</li>
-     *     <li>A leading {@code 0} is replaced, so typing {@code 0} then {@code 7} shows {@code 7}.</li>
-     *     <li>Once the number is {@value #MAX_INPUT_LENGTH} characters long, more digits are ignored.</li>
+     *   <li>After a result, an operator or an error, the digit starts a new number.</li>
+     *   <li>A leading {@code 0} is replaced, so typing {@code 0} then {@code 7} shows {@code 7}.</li>
+     *   <li>Once the number is 16 characters long, more digits are ignored.</li>
      * </ul>
      *
      * @param digit the digit pressed, from {@code 0} to {@code 9}
@@ -108,7 +113,6 @@ public final class CalculatorEngine {
      */
     public void digit(int digit) {
         if (digit < 0 || digit > 9) {
-            // Best practice: reject bad arguments loudly instead of silently doing something odd.
             throw new IllegalArgumentException("Not a single digit: " + digit);
         }
         beginEntryIfNeeded();
@@ -124,13 +128,13 @@ public final class CalculatorEngine {
     /**
      * Handles the decimal point key.
      *
-     * <p>A number can contain only one point, so further processes are ignored. Pressing it
+     * <p>A number can contain only one point, so further presses are ignored. Pressing it
      * to start a new number shows {@code 0.}, ready for the digits after the point.
      */
     public void decimalPoint() {
         beginEntryIfNeeded();
         if (input.indexOf(".") < 0 && input.length() < MAX_INPUT_LENGTH) {
-            input.append(".");
+            input.append('.');
         }
     }
 
@@ -158,16 +162,16 @@ public final class CalculatorEngine {
     }
 
     /**
-     * Handles an operator key that needs two numbers {@code + − × ÷ ^}.
+     * Handles an operator key that needs two numbers: {@code + − × ÷ ^}.
      *
      * <ul>
-     *  <li>If another operation is already waiting and a new member has been typed,
-     *      that operation is calculated first and its result is shown. This is what makes
-     *      {@code 2 + 3 x} show {@code 5}.</li>
-     *  <li>If the user presses two operators in a row, the second replaces the first.</li>
-     *  <li>The history line is updated to show the running total and the new operator,
-     *      for example {@code "5 x"}.</li>
-     *  <li>Ignored while an error is shwon.</li>
+     *   <li>If another operation is already waiting and a new number has been typed,
+     *       that operation is calculated first and its result is shown. This is what makes
+     *       {@code 2 + 3 ×} show {@code 5}.</li>
+     *   <li>If the user presses two operators in a row, the second replaces the first.</li>
+     *   <li>The history line is updated to show the running total and the new operator,
+     *       for example {@code "5 ×"}.</li>
+     *   <li>Ignored while an error is shown.</li>
      * </ul>
      *
      * @param op the operator pressed; must not be {@code null}
@@ -186,6 +190,11 @@ public final class CalculatorEngine {
                 return;
             }
         }
+
+        pendingOp = op;
+        history = format(accumulator) + " " + op.symbol();
+        awaitingOperand = true;
+        startNewEntry = true;
     }
 
     /**
@@ -218,7 +227,7 @@ public final class CalculatorEngine {
 
         showResult(op.apply(value));
         awaitingOperand = false;
-        startNewEntry = false;
+        startNewEntry = true;
     }
 
     /**
@@ -247,7 +256,7 @@ public final class CalculatorEngine {
     }
 
     /**
-     * Handles the {@code C}: resets the calculator to its starting state.
+     * Handles the {@code C} key: resets the calculator to its starting state.
      *
      * <p>The display returns to {@code 0}, the history line empties, any pending operation
      * is forgotten and any error is cleared.
@@ -267,7 +276,7 @@ public final class CalculatorEngine {
      *
      * <p>While the user is typing, this is exactly what they typed, including a trailing
      * point such as {@code "3."}. After a calculation it is the formatted result, such as
-     * {@code "0.3} or {@code "1E+20"}.
+     * {@code "0.3"} or {@code "1E+20"}.
      *
      * @return the display text, or {@link #ERROR_TEXT} in the error state; never {@code null}
      */
@@ -315,7 +324,7 @@ public final class CalculatorEngine {
         if (input.charAt(0) == '-') {
             input.deleteCharAt(0);
         } else if (!input.toString().equals("0")) {
-            input.insert(0, "-");
+            input.insert(0, '-');
         }
     }
 
